@@ -1,0 +1,88 @@
+---
+title: "Using Regular Expressions in R"
+author: "ZevRoss Spatial Analysis"
+date: "April 21, 2016"
+output: html_document
+---
+
+## Regular Expressions
+We use regular expressions frequently enough in our line of work but they're one of those things that I constantly need to refer to tutorials or references to ...
+
+
+## Special Characters
+This table was copied from:
+https://bioinfomagician.wordpress.com/2013/10/27/regular-expression-tutorial-1-special-characters/
+
+Symbol			|	Name			|	Function
+------------- 	|	------------- 	|	------------- 
+\\    			|	back slash		|	escape character
+[ ]  			|	square brackets |  	single character match
+{ }  			|	curly braces	|  	repeats
+( )  			|	parenthesis 	|   reference or subexpression
+^    			|	hat             |	beginning of a line (not string)
+$    			|	dollar          |	end of a line (not string)
+\|    			|	pipe            |	alternation [OR]
+*    			|	asterisk        |  	zero or more times of repeat
++    			|	plus sign       |  	1 or more times of repeat
+?    			|	question mark   |	occur 0 times or once 
+.    			|	dot             |  	any single character
+!    			|	exclamation     |	negation [NOT]
+
+
+
+Symbol			|	Name			
+------------- 	|	------------- 	
+\\t				|	tab
+\\n				|	new line
+\\r				|	carriage return
+\\f				|	form feed character (end of page character)
+
+
+### Identify certain character class
+
+Symbol			|	Name			
+------------- 	|	-------------
+\\s				|	a white space
+\\S				|	non-white space
+\\d				|	a digit [0-9]
+\\D				|	non-digit [^0-9]
+\\w				|	word character [a-z, A-Z]
+\\W				|	non-word character
+\\A				|	beggining of a string
+\\z				|	end of a string
+
+
+
+
+
+
+
+
+
+```{r}
+x<-c("145_bus23", "230_busy731", "AFQ_247_bustedje", "ll4bus", "Bus63_x391")
+
+grep(pattern = "bus", x = x)
+
+grep(pattern = "bus$", x = x)
+
+grep(pattern = "bus", x = x, ignore.case = T)
+
+```
+
+
+
+
+
+
+
+
+
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta content="initial-scale=1.0, user-scalable=no" name="viewport">
+    <meta charset="utf-8">
+
+    <title>Simple Ground Overlay</title>
+    <style>
+  html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;
+      }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    
+    <script>
+    var landuseOverlay;
+
+    function initMap() {
+    var map = new google.maps.Map(document.getElementById('map'), {
+    zoom: 4,
+    center: {lat: 65, lng: -152.2683},
+    mapTypeId: google.maps.MapTypeId.TERRAIN
+    });
+
+    var bounds = new google.maps.LatLngBounds(
+      new google.maps.LatLng(54.36582, -167.7103),
+      new google.maps.LatLng(71.39622, -129.9973));
+
+
+    var overlayOpts = {
+      opacity:0.5
+    }
+
+    var imgSrc = 'X:/administrative/social_media/blogposts/r_raster_google_map/alaska_lc.png'
+    
+    landuseOverlay = new google.maps.GroundOverlay(imgSrc, bounds, overlayOpts);
+    landuseOverlay.setMap(map);
+    }
+
+    </script>
+    <script async="" defer src="https://maps.googleapis.com/maps/api/js?callback=initMap&signed_in=true"></script>
+</body>
+</html>

@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+
+
+<title>Not sure</title>
+
+<script src="r_simplify_polys_files/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="r_simplify_polys_files/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="r_simplify_polys_files/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="r_simplify_polys_files/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="r_simplify_polys_files/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="r_simplify_polys_files/htmlwidgets-0.6/htmlwidgets.js"></script>
+<script src="r_simplify_polys_files/datatables-binding-0.1/datatables.js"></script>
+<script src="r_simplify_polys_files/datatables-1.10.7/jquery.dataTables.min.js"></script>
+<link href="r_simplify_polys_files/datatables-default-1.10.7/dataTables.extra.css" rel="stylesheet" />
+<link href="r_simplify_polys_files/datatables-default-1.10.7/jquery.dataTables.min.css" rel="stylesheet" />
+
+<style type="text/css">code{white-space: pre;}</style>
+<link rel="stylesheet"
+      href="r_simplify_polys_files/highlight/default.css"
+      type="text/css" />
+<script src="r_simplify_polys_files/highlight/highlight.js"></script>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script src="r_simplify_polys_files/navigation-1.0/tabsets.js"></script>
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Not sure</h1>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#load-the-libraries">Load the libraries</a></li>
+<li><a href="#download-unzip-the-data">Download &amp; unzip the data</a></li>
+<li><a href="#read-in-the-data-and-take-a-quick-look">Read in the data and take a quick look</a></li>
+<li><a href="#method-1-gsimplify-from-the-rgeos-library">Method 1: <code>gSimplify</code> from the <a href="https://cran.r-project.org/web/packages/rgeos/rgeos.pdf"><code>rgeos</code></a> library</a><ul>
+<li><a href="#using-a-tolerance-of-0.01">Using a tolerance of 0.01</a></li>
+<li><a href="#using-a-tolerance-of-0.05">Using a tolerance of 0.05</a></li>
+<li><a href="#using-a-tolerance-of-0.1">Using a tolerance of 0.1</a></li>
+</ul></li>
+<li><a href="#method-2-generalize.polys-from-the-gistools-library">Method 2: <code>generalize.polys</code> from the <a href="https://cran.r-project.org/web/packages/GISTools/GISTools.pdf"><code>GISTools</code></a> library</a><ul>
+<li><a href="#using-a-tolerance-of-0.01-1">Using a tolerance of 0.01</a></li>
+<li><a href="#using-a-tolerance-of-0.05-1">Using a tolerance of 0.05</a></li>
+<li><a href="#using-a-tolerance-of-0.1-1">Using a tolerance of 0.1</a></li>
+</ul></li>
+<li><a href="#method-3-thinnedspatialpoly-from-the-maptools-library">Method 3: <code>thinnedSpatialPoly</code> from the <a href="https://cran.r-project.org/web/packages/maptools/maptools.pdf"><code>maptools</code></a> library</a><ul>
+<li><a href="#using-a-tolerance-of-0.01-2">Using a tolerance of 0.01</a></li>
+</ul></li>
+</ul>
+</div>
+
+<p>A recent client of ours asked us to develop a mapping application using a specific shapefile of the world and all of its countries. Although the original shapefile was not super-detailed, it was detailed (i.e. large) enough that it caused extremely slow load times in the mapping app. We needed to reduce the size of the original shapefile without compromising too much detail in the polygon geometry. It was also important to us that we NOT remove smaller polygons as much as possible.</p>
+<p>Below we’ll explore the various options for reducing spatial polygon sizes while maintaining the original geomtery as much as possible. We’ll end with an example interactive map using the <a href="https://cran.r-project.org/web/packages/highcharter/index.html"><code>highcharter</code> library</a> authored by Joshua Kunst.</p>
+<div id="load-the-libraries" class="section level2">
+<h2>Load the libraries</h2>
+<pre class="r"><code>library(rgdal)        # for reading shapefile
+library(rgeos)        # for using well known text (readWKT)
+library(maptools)
+library(GISTools)
+library(ggplot2)      # for plotting
+library(DT)           # for displaying interactive data tables
+library(dplyr)        # for data manipulation
+library(highcharter)  # for interactive mapping</code></pre>
+</div>
+<div id="download-unzip-the-data" class="section level2">
+<h2>Download &amp; unzip the data</h2>
+<p>As mentioned above we were required to work with a specific shapefile for this project. A smaller, clipped version can be downloaded from our site and is what is used in the examples below.</p>
+<pre class="r"><code>url&lt;-&quot;http://www.zevross.com/temp/gis.zip&quot;
+downloaddir&lt;-&quot;D:/work_big_current/blog/r_simplify_polys&quot;
+destname&lt;-&quot;gis.zip&quot;
+download.file(url, destname)
+unzip(destname, exdir=downloaddir, junkpaths=TRUE)</code></pre>
+</div>
+<div id="read-in-the-data-and-take-a-quick-look" class="section level2">
+<h2>Read in the data and take a quick look</h2>
+<p>This is a clipped version of the original data, the southern tip of South America. We chose this location specifically so we could compare the changes in detail of the somewhat elaborate geometry.</p>
+<pre class="r"><code>filename&lt;-list.files(downloaddir, pattern=&quot;.shp&quot;, full.names=FALSE)
+filename&lt;-gsub(&quot;.shp&quot;, &quot;&quot;, filename)
+
+
+orig&lt;-readOGR(downloaddir, filename)
+## OGR data source with driver: ESRI Shapefile 
+## Source: &quot;D:/work_big_current/blog/r_simplify_polys&quot;, layer: &quot;SAsouth&quot;
+## with 2 features
+## It has 10 fields
+
+g&lt;-ggplot() + 
+    geom_polygon(data = orig, aes(x = long, y = lat, group = group),
+        fill = &quot;tomato3&quot;, color = &quot;gray70&quot;)
+g   </code></pre>
+<p><img src="r_simplify_polys_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+</div>
+<div id="method-1-gsimplify-from-the-rgeos-library" class="section level2">
+<h2>Method 1: <code>gSimplify</code> from the <a href="https://cran.r-project.org/web/packages/rgeos/rgeos.pdf"><code>rgeos</code></a> library</h2>
+<p>Authors: Roger Bivand &amp; Colin Rundel</p>
+<p>Function simplifies the given geometry using the Douglas-Peuker algorithm. Keep in mind that <code>gSimplify</code> returns just the geometry, not the attributes. In order to re-assign the attribute data from your original data you’ll need to contruct a new SpatialPolygonsDataFrame. See a discussion about this <a href="http://zevross.com/blog/2015/10/14/manipulating-and-mapping-us-census-data-in-r-using-the-acs-tigris-and-leaflet-packages-3/#convert-the-data.frame-back-to-a-spatialpolygonsdataframe"><code>here</code></a>.</p>
+<div id="using-a-tolerance-of-0.01" class="section level3">
+<h3>Using a tolerance of 0.01</h3>
+<pre class="r"><code>simp01&lt;-gSimplify(orig, tol = 0.01, topologyPreserve = TRUE)
+
+g + geom_polygon(data = simp01, aes(x = long, y = lat, group = group),
+    fill = &quot;turquoise4&quot;, color = &quot;gray70&quot;, alpha= 0.6)</code></pre>
+<p><img src="r_simplify_polys_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+</div>
+<div id="using-a-tolerance-of-0.05" class="section level3">
+<h3>Using a tolerance of 0.05</h3>
+<pre class="r"><code>simp05&lt;-gSimplify(orig, tol = 0.05, topologyPreserve = TRUE)
+
+g + geom_polygon(data = simp05, aes(x = long, y = lat, group = group),
+    fill = &quot;turquoise4&quot;, color = &quot;gray70&quot;, alpha= 0.6)</code></pre>
+<p><img src="r_simplify_polys_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+</div>
+<div id="using-a-tolerance-of-0.1" class="section level3">
+<h3>Using a tolerance of 0.1</h3>
+<pre class="r"><code>simp1&lt;-gSimplify(orig, tol = 0.1, topologyPreserve = TRUE)
+
+g + geom_polygon(data = simp1, aes(x = long, y = lat, group = group),
+    fill = &quot;turquoise4&quot;, color = &quot;gray70&quot;, alpha= 0.6)</code></pre>
+<p><img src="r_simplify_polys_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p>The visual comparison between the 3 maps is definitely useful but we’d like to also compare the number of vertices between each simplified polygon. Use fortify from the <code>sp</code> library to do this. Let’s also count the number of polygons remaining to make sure we didn’t lose any (or too many).</p>
+<pre class="r"><code>
+# Function for calculating the number of polygons
+calcNumPolys&lt;-function(dat){
+    sum(sapply(dat@polygons, function(x) length(x@Polygons)))
+}
+
+
+
+datMetrics&lt;-data.frame(method = &quot;Original&quot;, tolerance = NA,
+    numVertices = nrow(fortify(orig)),
+    numPolys = calcNumPolys(orig))
+
+
+z&lt;-data.frame(method = &quot;gSimplify&quot;,
+    tolerance = c(0.01, 0.05, 0.1),
+    numVertices = c(nrow(fortify(simp01)),
+        nrow(fortify(simp05)), nrow(fortify(simp1))),
+    numPolys = c(calcNumPolys(simp01), calcNumPolys(simp05),
+        calcNumPolys(simp1)))
+
+
+datMetrics&lt;-bind_rows(datMetrics, z)
+
+
+datatable(datMetrics)</code></pre>
+<div id="htmlwidget-3476" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-3476">{"x":{"data":[["1","2","3","4"],["Original","gSimplify","gSimplify","gSimplify"],[null,0.01,0.05,0.1],[6673,2067,1094,887],[98,98,98,98]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> \u003c/th>\n      <th>method\u003c/th>\n      <th>tolerance\u003c/th>\n      <th>numVertices\u003c/th>\n      <th>numPolys\u003c/th>\n    \u003c/tr>\n  \u003c/thead>\n\u003c/table>","options":{"columnDefs":[{"className":"dt-right","targets":[2,3,4]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false},"callback":null,"filter":"none"},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+<div id="method-2-generalize.polys-from-the-gistools-library" class="section level2">
+<h2>Method 2: <code>generalize.polys</code> from the <a href="https://cran.r-project.org/web/packages/GISTools/GISTools.pdf"><code>GISTools</code></a> library</h2>
+<p>This tool is authored by Chris Brundsdon and similar to <code>gSimplify</code> uses the Douglas-Peuker algorithm for generalizing a spatial polygon. According to the documentation “the algorithm is applied on a polygon-by-polygon, not edge-by-edge basis. Thus edges in generalised polygons may not match perfectly.”</p>
+<div id="using-a-tolerance-of-0.01-1" class="section level3">
+<h3>Using a tolerance of 0.01</h3>
+<pre class="r"><code>gen01&lt;-generalize.polys(orig, tol = 0.01)
+
+g + geom_polygon(data = gen01, aes(x = long, y = lat, group = group),
+    fill = &quot;turquoise4&quot;, color = &quot;gray70&quot;, alpha= 0.6)</code></pre>
+<p><img src="r_simplify_polys_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+</div>
+<div id="using-a-tolerance-of-0.05-1" class="section level3">
+<h3>Using a tolerance of 0.05</h3>
+<pre class="r"><code>gen05&lt;-generalize.polys(orig, tol = 0.05)
+
+g + geom_polygon(data = gen05, aes(x = long, y = lat, group = group),
+    fill = &quot;turquoise4&quot;, color = &quot;gray70&quot;, alpha= 0.6)</code></pre>
+<p><img src="r_simplify_polys_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+</div>
+<div id="using-a-tolerance-of-0.1-1" class="section level3">
+<h3>Using a tolerance of 0.1</h3>
+<pre class="r"><code>gen1&lt;-generalize.polys(orig, tol = 0.1)
+
+g + geom_polygon(data = gen1, aes(x = long, y = lat, group = group),
+    fill = &quot;turquoise4&quot;, color = &quot;gray70&quot;, alpha= 0.6)</code></pre>
+<p><img src="r_simplify_polys_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<pre class="r"><code>z&lt;-data.frame(method = &quot;generalizePolys&quot;,
+    tolerance = c(0.01, 0.05, 0.1),
+    numVertices = c(nrow(fortify(gen01)),
+        nrow(fortify(gen05)), nrow(fortify(gen1))),
+    numPolys = c(calcNumPolys(gen01), calcNumPolys(gen05),
+        calcNumPolys(gen1)))
+
+
+datMetrics&lt;-bind_rows(datMetrics, z)
+
+
+datatable(datMetrics)</code></pre>
+<div id="htmlwidget-589" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-589">{"x":{"data":[["1","2","3","4","5","6","7"],["Original","gSimplify","gSimplify","gSimplify","generalizePolys","generalizePolys","generalizePolys"],[null,0.01,0.05,0.1,0.01,0.05,0.1],[6673,2067,1094,887,2010,897,468],[98,98,98,98,97,88,42]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> \u003c/th>\n      <th>method\u003c/th>\n      <th>tolerance\u003c/th>\n      <th>numVertices\u003c/th>\n      <th>numPolys\u003c/th>\n    \u003c/tr>\n  \u003c/thead>\n\u003c/table>","options":{"columnDefs":[{"className":"dt-right","targets":[2,3,4]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false},"callback":null,"filter":"none"},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+<div id="method-3-thinnedspatialpoly-from-the-maptools-library" class="section level2">
+<h2>Method 3: <code>thinnedSpatialPoly</code> from the <a href="https://cran.r-project.org/web/packages/maptools/maptools.pdf"><code>maptools</code></a> library</h2>
+<div id="using-a-tolerance-of-0.01-2" class="section level3">
+<h3>Using a tolerance of 0.01</h3>
+<pre class="r"><code>thin01&lt;-thinnedSpatialPoly(orig, tolerance = 0.01, minarea=0,
+    topologyPreserve = FALSE, avoidGEOS = FALSE)
+
+
+g + geom_polygon(data = thin01, aes(x = long, y = lat, group = group),
+    fill = &quot;turquoise4&quot;, color = &quot;gray70&quot;, alpha= 0.6)</code></pre>
+<p><img src="r_simplify_polys_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<pre class="r"><code>thin05&lt;-thinnedSpatialPoly(orig, tolerance = 0.05, minarea=0,
+    topologyPreserve = TRUE, avoidGEOS = FALSE)
+
+g + geom_polygon(data = thin05, aes(x = long, y = lat, group = group),
+    fill = &quot;turquoise4&quot;, color = &quot;gray70&quot;, alpha= 0.6)</code></pre>
+<p><img src="r_simplify_polys_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<pre class="r"><code>
+thin1&lt;-thinnedSpatialPoly(orig, tolerance = 0.1, minarea=0,
+    topologyPreserve = TRUE, avoidGEOS = FALSE)
+
+g + geom_polygon(data = thin1, aes(x = long, y = lat, group = group),
+    fill = &quot;turquoise4&quot;, color = &quot;gray70&quot;, alpha= 0.6)</code></pre>
+<p><img src="r_simplify_polys_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
+<pre class="r"><code>z&lt;-data.frame(method = &quot;thinSpatialPoly&quot;,
+    tolerance = c(0.01, 0.05, 0.1),
+    numVertices = c(nrow(fortify(thin01)),
+        nrow(fortify(thin05)), nrow(fortify(thin1))),
+    numPolys = c(calcNumPolys(thin01), calcNumPolys(thin05),
+        calcNumPolys(thin1)))
+
+
+datMetrics&lt;-bind_rows(datMetrics, z)
+
+
+datatable(datMetrics)</code></pre>
+<div id="htmlwidget-2664" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-2664">{"x":{"data":[["1","2","3","4","5","6","7","8","9","10"],["Original","gSimplify","gSimplify","gSimplify","generalizePolys","generalizePolys","generalizePolys","thinSpatialPoly","thinSpatialPoly","thinSpatialPoly"],[null,0.01,0.05,0.1,0.01,0.05,0.1,0.01,0.05,0.1],[6673,2067,1094,887,2010,897,468,2010,1094,887],[98,98,98,98,97,88,42,97,98,98]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> \u003c/th>\n      <th>method\u003c/th>\n      <th>tolerance\u003c/th>\n      <th>numVertices\u003c/th>\n      <th>numPolys\u003c/th>\n    \u003c/tr>\n  \u003c/thead>\n\u003c/table>","options":{"columnDefs":[{"className":"dt-right","targets":[2,3,4]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false},"callback":null,"filter":"none"},"evals":[],"jsHooks":[]}</script>
+<!-- The [`FedData`](https://github.com/bocinsky/FedData) (creaed by by [R. Kyle Bocinsky](http://www.bocinsky.io/)) is a great new R package that provides easy access to some important federal datasets. The package is well-designed and provides functions to download climate, elevation, hydrography and other data for your area of interest. The following five sources of data are currently available for download with future ones in the works:<br><br> -->
+<!-- * The National Hydrography Dataset (USGS)<br> -->
+<!-- * The National Elevation Dataset digital elevation models (1 and 1/3 arc-second; USGS)<br> -->
+<!-- * The Soil Survey Geographic (SSURGO) database from the National Cooperative Soil Survey (NCSS)<br> -->
+<!-- * The Global Historical Climatology Network (GHCN), coordinated by National Climatic Data Center at NOAA<br> -->
+<!-- * The International Tree Ring Data Bank (ITRDB), coordinated by National Climatic Data Center at NOAA<br> -->
+<!-- For this particular post we're focusing on the climate (GHCN) and elevation (NED) datasets. -->
+<!-- <br> -->
+<!-- <br> -->
+<!-- ## 1. Load the libraries -->
+<!-- For the data download you only really need the `FedData` package but we will be manipulating and mapping the data and will load some of our favorite data manipulation and spatial libraries. -->
+<!-- ```{r} -->
+<!-- library(FedData)    # for downloading Federal data -->
+<!-- library(rgdal)      # for reading shapefile -->
+<!-- library(ggmap)      # for choosing our area of interest -->
+<!-- library(raster)        # for defining extents and raster processing -->
+<!-- library(dplyr)      # for data manipulation -->
+<!-- library(leaflet)    # for mapping -->
+<!-- library(rgeos)      # for using well known text (readWKT) -->
+<!-- library(tidyr)      # for reformatting data.frames -->
+<!-- library(xts)        # for working with time series -->
+<!-- library(dygraphs)   # for interactive time series plot -->
+<!-- library(sp)         # for working with spatial objects -->
+<!-- library(tigris)     # for downloading geography -->
+<!-- ``` -->
+<!-- <br> -->
+<!-- <br> -->
+<!-- ## 2. Define your map extent -->
+<!-- There are a series of "get" functions in `FedData` that allow you to get data (`get_fed`, `get_ghcn_daily`) and each one requires that you define the extent -- your area of interest. You can use standard R spatial objects created by, for example, reading in shapefiles or you can take advantage of functions from the `FedData` package to help you define the extent. Below we outline several different approaches for defining your extent and you can pick the one that works best for you. For this particular post we will focus on our home area, Ithaca, NY. -->
+<!-- ### a) Define extent: Use an existing shapefile -->
+<!-- If you already have a shapefile with the extent you're interested in you can read it in and use this for the extent. In a previous post we describe how to [read a shapefile into R using the `rgdal` library](http://zevross.com/blog/2016/01/13/tips-for-reading-spatial-files-into-r-with-rgdal/) and the basic syntax is as follows:  -->
+<!-- ```{r plot1} -->
+<!-- setwd("X:/administrative/social_media/blogposts/feddata_tompkins") -->
+<!-- # Get our Ithaca bounding box -->
+<!-- extentA <- readOGR(dsn=".", layer="ithaca", verbose = FALSE) -->
+<!-- sp::plot(extentA, col="blue") # not so exciting! -->
+<!-- ``` -->
+<!-- ### b) Define extent: Use a bounding box and FedData's `polygon_from_extent` function -->
+<!-- If you don't already have a shapefile to use, you can define extent based on coordinates of a bounding box. The `FedData` package comes with a handy function that takes, as input, an extent object created using the `raster` package. The extent can be created using just four coordinates that define your bounding box.  -->
+<!-- To define your extent you need an xmin, xmax, ymin and ymax coordinate and you can define these manually, but we will take advantage of `ggmap` to get these coordinates. -->
+<!-- Start by running `get_map` to get a ggmap object. -->
+<!-- ```{r plot2} -->
+<!-- # The function qmap will get and do map but we need get_map for coords -->
+<!-- ithaca<-get_map("Ithaca, NY", zoom=11)  -->
+<!-- ggmap(ithaca) -->
+<!-- ``` -->
+<!-- Using our `ggmap` object pull out the bounding box coordinates using the `attr` function. Note that you can also access the `bbox` slot directly with `ithaca@bbox` (but it's in a different format). -->
+<!-- ```{r} -->
+<!-- bb<-attr(ithaca, "bb") -->
+<!-- bb -->
+<!-- ``` -->
+<!-- Now feed your coordinates into the `extent` and `polygon_from_extent` functions. Note that a double colon (::) specifies which package the function comes from (`raster`) if you load the `raster` package this is not necessary except "extent" is such a common word that you might worry that other packages have a function named "extent" in which case you can be specific. -->
+<!-- ```{r} -->
+<!-- #xmin, xmax, ymin, ymax -->
+<!-- extentB <- polygon_from_extent(raster::extent(bb$ll.lon, bb$ur.lon, bb$ll.lat, bb$ur.lat), -->
+<!--                                   proj4string="+proj=longlat +ellps=GRS80 +datum=NAD83 +no_defs") -->
+<!-- class(extentB) -->
+<!-- ``` -->
+<!-- To confirm that you have this right: -->
+<!-- ```{r plot3} -->
+<!-- # Perfect! -->
+<!-- ggmap(ithaca) + geom_polygon(aes(x=long, y=lat), size=3, color='purple', -->
+<!--    data=extentB, fill=NA) -->
+<!-- ``` -->
+<!-- ### c) Define extent: Use the `tigris` package to boundaries -->
+<!-- The `tigris` package offers a lot of great functions for extracting boundaries. If you want more detail on `tigris` we have a detailed post on using the [`tigris` library](http://zevross.com/blog/2015/10/14/manipulating-and-mapping-us-census-data-in-r-using-the-acs-tigris-and-leaflet-packages-3/). As an example, if you wanted your extent to be a particular county (in this case Ithaca is in Tompkins County in NYS) you could use the following code: -->
+<!-- ```{r plot4} -->
+<!-- extentC <- counties(state="NY") # county extent, not a bounding box -->
+<!-- extentC <- extentC[extentC$NAME == "Tompkins",] -->
+<!-- sp::plot(extentC, col="firebrick", border=NA) -->
+<!-- ``` -->
+<!-- ### d) Define extent: Extra credit, define a bounding box manually -->
+<!-- You can also use what's known as [Well Known Text](https://en.wikipedia.org/wiki/Well-known_text), a geographic markup language, to manually define a polygon and use this with the function `readWKT` from the `rgeos` package to create your spatial object. -->
+<!-- As an aside, there is a [known bug](http://stackoverflow.com/questions/22387624/ggplot2-with-ggmap-odd-shaped-polygon-r) in `ggplot2` where it can mangle polygons that end up partly outside the extent of a map. As a result, I'm using carefully rounded coordinates so that the map will show the box, but this is not necessary if you're not using `ggmap` to create the map. -->
+<!-- ```{r plot5} -->
+<!-- extentD <- readWKT("POLYGON(( -76.71 42.29,  -76.71 42.6,  -76.29 42.6,  -76.29 42.29,  -76.71 42.29))") -->
+<!-- proj4string(extentD) <- "+proj=longlat +ellps=GRS80 +datum=NAD83 +no_defs" -->
+<!-- ggmap(ithaca) + geom_polygon(aes(x=long, y=lat), size=3, color='purple', -->
+<!--    data=extentD, fill=NA) -->
+<!-- ``` -->
+<!-- <br> -->
+<!-- <br> -->
+<!-- ## 3. Download elevation and climate data -->
+<!-- You can use any of the defined extents above, I will use the one created using the `FedData` function `polygon_from_extent` (`extentB`). -->
+<!-- Now that we have our extent defined let's download some data. Keep in mind that based on your extent this step might take a few minutes. Also you may want to set a working directory, otherwise the data will be downloaded to your default directory. -->
+<!-- ```{r, warning=FALSE} -->
+<!-- setwd("d:/junk") -->
+<!-- # Download NED elevation data. This will return a raster -->
+<!-- # of elevation data cropped to our extent area. Res = "1"  -->
+<!-- # refers to 1 arc-second NED. This is the default. To  -->
+<!-- # download 1/3 arc-second NED use res = "13". I'm adding  -->
+<!-- # force.redo = F to both download functions. This will  -->
+<!-- # check to see if the data already exists in which case  -->
+<!-- # it will not re-download it. -->
+<!-- ned_ithaca<-get_ned(template=extentB, label="ned_ithaca", res="1", force.redo = F) -->
+<!-- # Download GHCN daily climate data. We're interested in  -->
+<!-- # precipitation (PRCP) but many other climate-related -->
+<!-- # elements exist (i.e. max and min temp, snowfall, etc). -->
+<!-- # See the `FedData` documentation for more details. Also  -->
+<!-- # of note is that a character vector of station IDs can  -->
+<!-- # be used in place of our extent object -->
+<!-- ghcn_ithaca<-get_ghcn_daily(template=extentB, label="ghcn_ithaca", -->
+<!--    elements="prcp", force.redo = F) -->
+<!-- ``` -->
+<!-- Using the base R `plot` function take a quick look at the data. -->
+<!-- ```{r plot6} -->
+<!-- # Not pretty but otherwise so far so good! -->
+<!-- sp::plot(ned_ithaca) -->
+<!-- sp::plot(ghcn_ithaca$spatial, add=TRUE) -->
+<!-- ``` -->
+<!-- <br> -->
+<!-- <br> -->
+<!-- ## 4. Explore the GHCN climate data -->
+<!-- ### GHCN spatial component -->
+<!-- As you may have noticed in the above plot, we access the "spatial" component of the GHCN data for adding points to the map. The other component of the GHCN download is the "tabular" piece. This is where the actual climate data is stored. Here we'll show the points again but this time using our Ithaca map and ggplot2.  -->
+<!-- ```{r plot7} -->
+<!-- # Plot the data using ggmap and ggplot2. Note  -->
+<!-- # that we convert our spatial coordinates to a  -->
+<!-- # data.frame for plotting with ggmap. -->
+<!-- ghcn_pts<-data.frame(ID = ghcn_ithaca$spatial$ID, -->
+<!--    lat = ghcn_ithaca$spatial@coords[,2], -->
+<!--    long = ghcn_ithaca$spatial@coords[,1]) -->
+<!-- ghcn_pts<-mutate(ghcn_pts, ID = as.character(as.factor(ID))) -->
+<!-- head(ghcn_pts) -->
+<!-- # Plot the points again. Looking a little better! -->
+<!-- ggmap(ithaca) + geom_point(aes(x=long, y=lat), -->
+<!--    size=3, color='red', data=ghcn_pts) -->
+<!-- ``` -->
+<!-- <br> -->
+<!-- <br> -->
+<!-- ### GHCN tabular component (includes interactive graphics) -->
+<!-- Now let's have a look at the actual precipitation values. The GHCN output returns a large list where each list element is an individual station and each station contains a data.frame of precipitation values. If we had downloaded multiple climate elements there would be multiple tables associated with each station.  -->
+<!-- ```{r} -->
+<!-- ghcn_dat<-ghcn_ithaca$tabular -->
+<!-- # Pull out the PRCP tables. If there were other -->
+<!-- # climate elements we could access these in a  -->
+<!-- # similar way (i.e. ghcn_dat, "[[", "TMIN") -->
+<!-- prcp<-lapply(ghcn_dat, "[[", "PRCP") -->
+<!-- # dissolve the list into a data.frame and add a station id -->
+<!-- prcp<-do.call("rbind", prcp) -->
+<!-- prcp$station <- substring(row.names(prcp),1,11) -->
+<!-- row.names(prcp) <- 1:nrow(prcp) -->
+<!-- head(prcp) -->
+<!-- ``` -->
+<!-- Doing monthly and yearly annual averages is cumbersome when each day is it's own column so let's convert this from "wide" format to "long" format using the function `gather` from the `tidyr` package. -->
+<!-- ```{r} -->
+<!-- # I'm going to convert to "long" format for easier calculations -->
+<!-- # gather is from the tidyr package -->
+<!-- prcp<-gather(prcp, day, precip, -station, -YEAR, -MONTH) -->
+<!-- # Add the date -->
+<!-- prcp <- mutate(prcp, -->
+<!--              MONTH = stringr::str_pad(MONTH, 2, side="left", pad="0"), -->
+<!--              day = stringr::str_pad(gsub("D", "", day), 2, side="left", pad="0"), -->
+<!--              date = as.Date(paste(YEAR, MONTH, day, sep="-"))) -->
+<!-- # Exclude non NA values -->
+<!-- prcp <- dplyr::filter(prcp, !is.na(date), !is.na(precip), date>as.Date("2008-01-01"), date< as.Date("2016-01-01")) -->
+<!-- head(prcp) -->
+<!-- ``` -->
+<!-- There are some stations with very little data, let's take a look at daily counts and then filter to only stations with plenty of data -->
+<!-- ```{r plot8} -->
+<!-- cnt <- group_by(prcp, station) %>%  -->
+<!--   summarize(cnt = n()) %>% arrange(cnt) %>%  -->
+<!--   mutate(station = factor(station, levels = station)) -->
+<!-- ggplot(cnt, aes(station, cnt)) +  -->
+<!--   geom_bar(stat="identity", fill="cadetblue") +  -->
+<!--   coord_flip()+ -->
+<!--   geom_hline(yintercept=2000) + -->
+<!--   ggtitle("Count of days with data at climate stations") -->
+<!-- # semi_join does a regular inner_join but only keeps the resulting -->
+<!-- # columns from the left table. 2000 looks like a good cutoff -->
+<!-- prcp <- semi_join(prcp, dplyr::filter(cnt, cnt>=2000), by = "station") -->
+<!-- ``` -->
+<!-- Do some final formatting of the daily data so that we can use it in an interactive graphic using [htmlWidgets](http://www.htmlwidgets.org/). -->
+<!-- ```{r} -->
+<!-- # If you'd prefer to look at daily data instead of monthly comment this out -->
+<!-- prcp <- group_by(prcp, YEAR, MONTH, station) %>%  -->
+<!--   summarize(precip  = mean(precip, na.rm=T)) %>%  -->
+<!--   mutate(date = as.Date(paste(YEAR, MONTH, "15", sep="-"))) -->
+<!-- # we will make it so that each column is a station -->
+<!-- prcp.wide<-spread(prcp[,c("date", "station", "precip")], station, precip) -->
+<!-- head(prcp.wide) -->
+<!-- # Now apply a 30-day moving average (both sides) to smooth out the variation -->
+<!-- prcp.wide[,2:ncol(prcp.wide)] <- lapply(prcp.wide[,2:ncol(prcp.wide)],  -->
+<!--                           function(x) stats::filter(x, rep(1/30, 30, sides=2))) -->
+<!-- # Delete rows with no data and convert to a data.frame -->
+<!-- howmanyNA <- rowSums(is.na(prcp.wide)) -->
+<!-- prcp.wide <- prcp.wide[howmanyNA!=(ncol(prcp.wide)-1),] -->
+<!-- prcp.wide <- data.frame(prcp.wide) -->
+<!-- ``` -->
+<!-- In the final step we will convert the object to a time series object and look at the daily data (with the 30-day moving average) using the great htmlWidget [dygraphs](http://rstudio.github.io/dygraphs/). -->
+<!-- ```{r} -->
+<!-- prcp.xts<-xts(prcp.wide[,-1], order.by = prcp.wide[,1]) -->
+<!-- #w <- dygraph(prcp.xts)%>% dyRangeSelector() -->
+<!-- #saveWidget(w, "X:/administrative/social_media/blogposts/feddata_tompkins/widgets/dywidget.html") -->
+<!-- ``` -->
+<!-- <br> -->
+<!-- Summarize the data for each station. Here we'll calculate annual averages and present them in a map. -->
+<!-- **NOTE: we are being extremely lazy here in our calculations paying no regard to data completeness, etc. Please do not apply these methods blindly when doing your own analysis :)** -->
+<!-- ```{r} -->
+<!-- # Calculate annual averages and create a final  -->
+<!-- # data.frame of values -->
+<!-- prcp.fin<-dplyr::filter(prcp, date>as.Date("2015-01-01")) %>%  -->
+<!--   group_by(station) %>% summarize(prcpAvg = round(mean(precip, na.rm=T),2)) %>%  -->
+<!--   rename(ID = station) -->
+<!-- prcp.fin<-left_join(prcp.fin, ghcn_pts, by= "ID") -->
+<!-- ``` -->
+<!-- <br> -->
+<!-- <br> -->
+<!-- ### Create Leaflet map of GHCN average annual data -->
+<!-- ```{r} -->
+<!-- w <- leaflet() %>% addProviderTiles("CartoDB.Positron") %>% -->
+<!--    addCircleMarkers(data = prcp.fin, lng = ~long, lat = ~lat, -->
+<!--        radius = ~prcpAvg/3, stroke=F, -->
+<!--     popup = paste("<strong>Station ID</strong><br>", prcp.fin$ID, -->
+<!--        "<br><br><strong>Average Annual<br>Precipitation</strong><br>", -->
+<!--        prcp.fin$prcpAvg, " inches"), color = "#006B8C", fillOpacity = 0.7) -->
+<!-- saveWidget(w, "X:/administrative/social_media/blogposts/feddata_tompkins/widgets/leaflet_widgets/first.html") -->
+<!-- ``` -->
+<!-- <br> -->
+<!-- <br> -->
+<!-- ## 5. Explore the NED 1-arc second elevation data -->
+<!-- In a previous blog post we discuss [working with rasters using the `raster` library](http://zevross.com/blog/2015/03/30/map-and-analyze-raster-data-in-r/). That post is helpful if you're looking to crop, re-classify or re-sample your data. In addition we have a post on [rendering a raster for use in Google Maps](http://zevross.com/blog/2015/08/21/process-a-raster-for-use-in-a-google-map-using-r/) which highlights multiple methods (some successful, some not) of exporting and overlaying a raster in Google Maps. Given these posts we're only going to lightly explore our elevation raster. The goal is to extract elevation values at the station locations and lastly create a final map. -->
+<!-- ```{r plot9} -->
+<!-- # Take a quick look at the elevation distribution -->
+<!-- neddat<-data.frame(rasterToPoints(ned_ithaca)) -->
+<!-- names(neddat)[3]<-"elev" -->
+<!-- ggplot(data=neddat, aes(elev)) +  -->
+<!--    geom_histogram(binwidth = 20, fill="sienna1", col="sienna3") -->
+<!-- ``` -->
+<!-- ```{r} -->
+<!-- # Create SpatialPointsDataFrame from GHCN points -->
+<!-- pts<-data.frame(prcp.fin) -->
+<!-- coordinates(pts)<-~long+lat -->
+<!-- proj4string(pts)<-"+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs" -->
+<!-- # Project the points and elevation raster to NY State Plane -->
+<!-- ithprj<-"+proj=tmerc +lat_0=40 +lon_0=-76.58333333333333 +k=0.9999375 +x_0=250000 +y_0=0 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs"  -->
+<!-- ptsprj<-spTransform(pts, CRS(ithprj)) -->
+<!-- nedprj<-projectRaster(ned_ithaca, crs=ithprj) -->
+<!-- # Extract elevation values at point locations -->
+<!-- nedpts<-raster::extract(nedprj, ptsprj) -->
+<!-- # Add elevation values to the points data and convert to feet -->
+<!-- prcp.fin<-cbind(prcp.fin, nedpts) -->
+<!-- prcp.fin<-mutate(prcp.fin, nedpts = round(nedpts/0.3048, 2)) -->
+<!-- head(prcp.fin) -->
+<!-- ``` -->
+<!-- <br> -->
+<!-- <br> -->
+<!-- ## 6. Create the final map with elevation and climate data (with interactive graphis) -->
+<!-- Here we'll pull together all the pieces and create a relatively simple Leaflet map with our elevation raster and station locations. **NOTE: depending on the size of your raster you may not be able to add the image to your Leaflet Map**. -->
+<!-- ```{r} -->
+<!-- # Elevation colors were heavily borrowed from the -->
+<!-- # Kansas Geological Survey's Elevation Map of Kansas: -->
+<!-- # http://www.kgs.ku.edu/General/elevatMap.html -->
+<!-- cols<-c("#06407F", "#317A9D", "#4ABEBB", "#40AE89", "#467B5D", -->
+<!--    "#3C6D4D", "#1A572E", "#034C00", "#045D03", "#6C975F", "#6B823A", -->
+<!--    "#88A237", "#C5D16B", "#DDE580", "#FFF6AE", "#FBCB81", "#F0B16A", -->
+<!--    "#F2B16D", "#D18338", "#B16F33", "#825337", "#66422A", "#4F2C0C") -->
+<!-- pal<-colorNumeric(cols, values(nedprj), -->
+<!--   na.color = "transparent") -->
+<!-- w<- leaflet() %>% addProviderTiles("CartoDB.Positron") %>% -->
+<!--   addRasterImage(nedprj, colors = pal, opacity = 0.6) %>% -->
+<!--    addCircleMarkers(data = prcp.fin, lng = ~long, -->
+<!--        lat = ~lat, radius = ~prcpAvg/3, stroke=F, -->
+<!--        popup = paste("<strong>Station ID</strong><br>", prcp.fin$ID, -->
+<!--        "<br><br><strong>Average Annual<br>Precipitation</strong><br>", -->
+<!--        prcp.fin$prcpAvg, " inches<br><br><strong>Elevation</strong><br>", -->
+<!--            prcp.fin$nedpts, " feet"), color = "#006B8C", fillOpacity = 0.7) -->
+<!-- saveWidget(w, "X:/administrative/social_media/blogposts/feddata_tompkins/widgets/leaflet_widgets/second.html") -->
+<!-- ``` -->
+</div>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+$(document).ready(function () {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+});
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

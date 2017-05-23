@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+
+
+<title>Tips and tricks for sizing images and figures in R Markdown documents</title>
+
+<script src="rmarkdown_images_files/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="rmarkdown_images_files/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="rmarkdown_images_files/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="rmarkdown_images_files/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="rmarkdown_images_files/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="rmarkdown_images_files/navigation-1.1/tabsets.js"></script>
+<link href="rmarkdown_images_files/highlightjs-1.1/default.css" rel="stylesheet" />
+<script src="rmarkdown_images_files/highlightjs-1.1/highlight.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+<link rel="stylesheet" href="style.css" type="text/css" />
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Tips and tricks for sizing images and figures in R Markdown documents</h1>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#load-the-libraries">Load the libraries</a></li>
+<li><a href="#take-a-quick-look-at-the-data">Take a quick look at the data</a></li>
+<li><a href="#default-settings-for-images-and-figures">Default settings for images and figures</a><ul>
+<li><a href="#defaults-for-the-images">Defaults for the images</a></li>
+<li><a href="#defaults-for-the-figure">Defaults for the figure</a></li>
+</ul></li>
+<li><a href="#sizing-images-and-figures-using-the-width-arguments">Sizing images and figures using the <code>width</code> arguments</a><ul>
+<li><a href="#whats-the-difference-between-fig.width-and-out.width">What’s the difference between <code>fig.width</code> and <code>out.width</code>?</a></li>
+<li><a href="#which-width-argument-should-i-use-or-should-i-use-them-both">Which <code>width</code> argument should I use (or should I use them both)?</a></li>
+<li><a href="#summary-of-width-arguments">Summary of <code>width</code> arguments</a></li>
+</ul></li>
+<li><a href="#using-fig.retina-for-html-outputs">Using <code>fig.retina</code> for HTML outputs</a></li>
+<li><a href="#using-the-dpi-arguments">Using the <code>dpi</code> arguments</a><ul>
+<li><a href="#applying-dpi-to-images">Applying <code>dpi</code> to images</a></li>
+<li><a href="#applying-dpi-to-figures">Applying <code>dpi</code> to figures</a></li>
+<li><a href="#summary-of-dpi-arguments">Summary of <code>dpi</code> arguments</a></li>
+</ul></li>
+<li><a href="#bonus-functionality">Bonus functionality</a><ul>
+<li><a href="#more-functionality-from-include_graphics">More functionality from <code>include_graphics</code></a></li>
+<li><a href="#additional-methods-for-adding-images">Additional methods for adding images</a></li>
+<li><a href="#assign-css-class-to-r-chunk">Assign CSS class to R chunk</a></li>
+</ul></li>
+<li><a href="#summary">Summary</a></li>
+</ul>
+</div>
+
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>I was recently putting together an R Markdown document for a client and found myself fussing around with the images for awhile – both the R-generated images like plots and maps, as well as my own images created outside of R. In an attempt to get all of the images sized and styled similarly, I spent some time searching around for best practices.</p>
+<p>This post is an account of what I found. It includes some basic descriptions of terms as well as some simple testing of both R-generated and user-generated graphics. Originally we were going to show several methods for adding user-generated images but ultimately decided to focus on the <code>include_graphics</code> function from the <code>knitr</code> package. The <code>knitr</code> package was written by Yihui Xie of RStudio (thanks Yihui!), and the <code>include_graphics</code> function is new to <code>knitr</code> as of version 1.12. We’re focusing our attention on <code>include_graphics</code> because it provides the most flexibility in terms of its ability to work with all document formats supported by knitr. For example you can use the same syntax regardless of if you’re working with LaTeX or Markdown.</p>
+<p><strong>NOTE</strong>: We mostly work with HTML documents so did all of our testing with an HTML end product in mind. Some of our conclusions and recommendations may not apply if you’re using R Markdown to create a PDF or Word document.</p>
+</div>
+<div id="load-the-libraries" class="section level2">
+<h2>Load the libraries</h2>
+<p>We’ll use the following libraries in this post.</p>
+<pre class="r"><code>library(knitr)    # For knitting document and include_graphics function
+library(ggplot2)  # For plotting
+library(png)      # For grabbing the dimensions of png files</code></pre>
+</div>
+<div id="take-a-quick-look-at-the-data" class="section level2">
+<h2>Take a quick look at the data</h2>
+<p>In this post we’ll work with 2 images of different sizes and resolutions as well as an R-generated ggplot. Moving forward we’re going to refer to the R-generated plot as <em>figure</em> and our uploaded images as <em>images</em>. Both images were downloaded to our local drive from <a href="https://pixabay.com/">here</a> and can be used free of copyrights under the Creative Commons CC0.</p>
+<p>To start out we want to know the original dimensions of our images. Calculate this using the <code>readPNG</code> function from <code>library(png)</code>. There are two ways to grab the dimensions (height and width) of the image.</p>
+<ul>
+<li>Use the <code>dim</code> function: get the dimensions of the image</li>
+<li>Use the <code>attr</code> function: get the dimensions of the image as well as some other potentially useful information (color type, dpi, etc).<br />
+<strong>NOTE</strong>: you can use the same process to examine jpegs, simply swap out <code>png</code> for <code>jpeg</code>. For example <code>jpeg::readJPEG(img1)</code>.</li>
+</ul>
+<div id="read-in-the-images-and-create-the-figure-without-setting-any-width-or-height-requirements" class="section level4">
+<h4>Read in the images and create the figure without setting any width or height requirements</h4>
+<div id="image-1-has-a-height-of-900px-a-width-of-1350px-and-dpi-of-300" class="section level5">
+<h5>Image 1 has a height of 900px, a width of 1350px and dpi of 300</h5>
+<pre class="r"><code>img1&lt;-&quot;images/sloth1.png&quot;
+
+dim(readPNG(img1))
+## [1]  900 1350    3
+
+attr(readPNG(img1, native = TRUE, info = TRUE), &#39;info&#39;)
+## $dim
+## [1] 1350  900
+## 
+## $bit.depth
+## [1] 8
+## 
+## $color.type
+## [1] &quot;RGB&quot;
+## 
+## $dpi
+## [1] 299.9994 299.9994
+include_graphics(img1)</code></pre>
+<p><img src="images/sloth1.png" width="675" /></p>
+</div>
+<div id="image-2-has-a-height-of-1050px-a-width-of-788px-and-dpi-of-72" class="section level5">
+<h5>Image 2 has a height of 1050px, a width of 788px and dpi of 72</h5>
+<pre class="r"><code>img2&lt;-&quot;images/sloth2.png&quot;
+
+dim(readPNG(img2))
+## [1] 1050  788    3
+
+attr(readPNG(img2, native = TRUE, info = TRUE), &#39;info&#39;)
+## $dim
+## [1]  788 1050
+## 
+## $bit.depth
+## [1] 8
+## 
+## $color.type
+## [1] &quot;RGB&quot;
+## 
+## $dpi
+## [1] 72.009 72.009
+include_graphics(img2)</code></pre>
+<p><img src="images/sloth2.png" width="394" /></p>
+</div>
+<div id="create-a-simple-ggplot" class="section level5">
+<h5>Create a simple ggplot</h5>
+<pre class="r"><code>g&lt;-ggplot(diamonds, aes(x=carat, y=price, color=cut)) + geom_point() +
+    theme(plot.background = element_rect(fill=&quot;azure3&quot;))
+g</code></pre>
+<p><img src="rmarkdown_images_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+</div>
+</div>
+</div>
+<div id="default-settings-for-images-and-figures" class="section level2">
+<h2>Default settings for images and figures</h2>
+<div id="defaults-for-the-images" class="section level3">
+<h3>Defaults for the images</h3>
+<p>Some of you may have noticed that the first image, which has an original width of 1350px, doesn’t really look like it’s 1350px wide. I checked the <em>actual</em> width of the image in my HTML file and it’s 675px wide or half of its original size. Same rule applies to the second image (original width is 788px, actual width is 394px). So what gives?</p>
+<p>As it turns out the default width setting when using the <code>include_graphics</code> function is to multiply the given width by 50%. That code looks something like this. Also for those of you working with PDF graphics, note that the default width is 300px.</p>
+<pre class="r"><code>assert(
+  &#39;include_graphics() includes custom images correctly&#39;,
+  identical(img_output(&#39;a.png&#39;), &#39;![](a.png)&#39;),
+  identical(img_output(c(&#39;a.png&#39;, &#39;b.png&#39;), list(fig.show = &#39;hold&#39;)), &#39;![](a.png)![](b.png)&#39;),
+  identical(img_output(&#39;a.png&#39;, list(fig.cap = &#39;foo bar&#39;)), &#39;![foo bar](a.png)&#39;),
+  identical(img_output(&#39;a.png&#39;, list(out.width = &#39;50%&#39;)), &#39;&lt;img src=&quot;a.png&quot; width=&quot;50%&quot; /&gt;&#39;),
+  identical(img_output(&#39;a.pdf&#39;, list(out.width = &#39;300px&#39;)), &#39;&lt;embed src=&quot;a.pdf&quot; width=&quot;300px&quot; type=&quot;application/pdf&quot; /&gt;&#39;)
+)</code></pre>
+</div>
+<div id="defaults-for-the-figure" class="section level3">
+<h3>Defaults for the figure</h3>
+<p>What about the figure? Width defaults for R-generated figures are 7 inches. To convert that into pixels we calculate <code>7in x 96dpi = 672px</code>. Great! This is the width we’re seeing in our HTML file.</p>
+</div>
+</div>
+<div id="sizing-images-and-figures-using-the-width-arguments" class="section level2">
+<h2>Sizing images and figures using the <code>width</code> arguments</h2>
+<p>A common issue we have is the need to make all of our graphics the same width or height within our document. There are two options for sizing the width (and height) so first things first, let’s start with some vocabulary.</p>
+<div id="whats-the-difference-between-fig.width-and-out.width" class="section level3">
+<h3>What’s the difference between <code>fig.width</code> and <code>out.width</code>?</h3>
+<ul>
+<li><h4 id="fig.width-and-fig.height"><code>fig.width</code> and <code>fig.height</code></h4>
+<p>The <code>fig.width</code> and <code>fig.height</code> inputs are the width and height of the output used in the R graphics device. These numbers are completely unrelated to <code>out.width</code> and <code>out.height</code>. The inputs must be numeric and are assigned <em>in inches</em>. For example <code>fig.width=2</code> would apply a width of 2 inches to the image. These arguments can be assigned to your individual R chunk (<code>{r, fig.width=2}</code>) or as a global chunk option (<code>opts_chunk$set(fig.width=2}</code>).</p></li>
+<li><h4 id="out.width-and-out.height"><code>out.width</code> and <code>out.height</code></h4>
+<p>The <code>out.width</code> and <code>out.height</code> inputs specify the width and height of the graphic within the output file. These arguments are written for various software packages (i.e. LaTeX) and as such have more flexibility in terms of unit selection. For example the units of measurement can be percentages (%), pixels (px), etc. These inputs are characters, so for example, <code>out.width=&quot;40%&quot;</code> would assign a width of 40% of the total width to the image. And similar to above, these arguments can be assigned to your individual R chunk (<code>{r, out.width=&quot;40%&quot;}</code>) or as a global chunk option (<code>opts_chunk$set(out.width=&quot;40%&quot;}</code>).</p></li>
+</ul>
+</div>
+<div id="which-width-argument-should-i-use-or-should-i-use-them-both" class="section level3">
+<h3>Which <code>width</code> argument should I use (or should I use them both)?</h3>
+<p>Now that we know what the different height and width arguments mean, when and how should we use them? Let’s run through several examples of applying the width arguments to our image and figure and see what happens. Keep in mind that we’re testing on HTML documents only. You may get different results if you’re working with pdf or word documents for example.</p>
+<div id="apply-both-fig.width-and-out.width" class="section level4">
+<h4>Apply both <code>fig.width</code> and <code>out.width</code></h4>
+<p>Apply a <code>fig.width</code> of 8 inches and an <code>out.width</code> of 20%.</p>
+<pre class="r"><code># {r, fig.width=8, out.width=&quot;20%&quot;}
+
+# Plot the image
+# The image in the HTML output is 20% of the
+# container&#39;s width. The downloaded image is
+# it&#39;s original height, width and dpi. The 
+# fig.width setting was not applied.
+
+include_graphics(img1)</code></pre>
+<p><img src="images/sloth1.png" width="20%" /></p>
+<pre class="r"><code># {r, fig.width=8, out.width=&quot;20%&quot;}
+
+# Plot the figure
+# The figure in the HTML output is 20% of the
+# container&#39;s width. The downloaded figure has
+# a width of 1536px (or 16in), a height of
+# 960px (or 10in) and a dpi of 192. Hmmm, why
+# is the downloaded figure so much larger than
+# our fig.width setting? Keep reading to 
+# find out.
+
+g</code></pre>
+<p><img src="rmarkdown_images_files/figure-html/unnamed-chunk-6-1.png" width="20%" /></p>
+</div>
+<div id="apply-fig.width-only" class="section level4">
+<h4>Apply <code>fig.width</code> only</h4>
+<p>Apply a <code>fig.width</code> of 4 inches to our image and figure.</p>
+<pre class="r"><code># {r, fig.width=4}
+
+# Plot the image
+# Similar to above the image ignores the 
+# fig.width setting. The width applied in
+# the HTML output is the default width
+# (original image width * 50%) and the
+# downloaded image is it&#39;s original height, 
+# width and dpi.
+
+include_graphics(img1)</code></pre>
+<p><img src="images/sloth1.png" width="675" /></p>
+<pre class="r"><code># {r, fig.width=4}
+
+# Plot the figure
+# With no out.width applied the width in the
+# HTML output assumes a fig.width of 4in
+# (4in * 96dpi = 384 px wide). The downloaded
+# figure has a width of 768px (or 8in), a height 
+# of 960px (10in) and dpi of 192. Again, why
+# are the dimensions larger than our fig.width
+# setting? 
+
+g</code></pre>
+<p><img src="rmarkdown_images_files/figure-html/unnamed-chunk-7-1.png" width="384" /></p>
+</div>
+<div id="apply-out.width-only" class="section level4">
+<h4>Apply <code>out.width</code> only</h4>
+<p>Apply an <code>out.width</code> of 50% to our image and figure.</p>
+<pre class="r"><code># {r, out.width=&quot;50%&quot;}
+
+# Plot the image
+# The image in the HTML output is 50% of the
+# container&#39;s width. The downloaded image is
+# it&#39;s original height, width and dpi.
+include_graphics(img1)</code></pre>
+<p><img src="images/sloth1.png" width="50%" /></p>
+<pre class="r"><code># {r, out.width=&quot;50%&quot;}
+
+# Plot the figure
+# The figure in the HTML output is 50% of the
+# container&#39;s width. The downloaded figure has
+# a width of 1344px (or 14in), a height of
+# 960px (or 10in) and a dpi of 192. Again, why
+# so much bigger? In the next section we will 
+# discuss an important chunk argument that 
+# often gets overlooked but will maintain your 
+# figure width settings.
+
+g</code></pre>
+<p><img src="rmarkdown_images_files/figure-html/unnamed-chunk-8-1.png" width="50%" /></p>
+</div>
+</div>
+<div id="summary-of-width-arguments" class="section level3">
+<h3>Summary of <code>width</code> arguments</h3>
+<p>Based on our testing here’s the quick takeaway:</p>
+<ul>
+<li><p><code>out.width</code> works for <em>both images and figures</em> and determines the size of the graphic within the output file, in this case our HTML document.</p></li>
+<li><p><code>fig.xxx</code> arguments apply only to R-generated <em>figures</em>, not to user-generated images. If you apply a <code>fig.xxx</code> argument to an image it will not do anything.</p></li>
+<li><p>If <code>out.width</code> is not applied to a <em>figure</em> but <code>fig.width</code> is, the width of the figure in the document will be its <code>fig.width</code>.</p></li>
+<li><p>The height, width and dpi of a downloaded <em>image</em> will stay the same regardless of what the <code>out.width</code> setting is. For example if you include an image that is 2000px X 1200px and 300dpi, those dimensions will not change if the image is downloaded. <strong>You’ll want to pay attention to how large your original images are before adding them or you could end up with a very large document</strong></p></li>
+<li><p>The height, width and dpi of a downloaded <em>figure</em> will be larger than the <code>fig.width</code> setting unless another argument is applied. See the next section for more details.</p></li>
+</ul>
+</div>
+</div>
+<div id="using-fig.retina-for-html-outputs" class="section level2">
+<h2>Using <code>fig.retina</code> for HTML outputs</h2>
+<p>In the previous section we discovered that the width, height and dpi of our downloaded figures were larger than our <code>fig.width</code> settings. In all cases in fact, the width of the downloaded figure was twice as large as the <code>fig.width</code> setting. So why is that?</p>
+<p>As it turns out the default setting of <code>fig.retina</code> for HTML documents is <code>fig.retina = 2</code>. This argument is a dpi multiplier for displaying HTML output on retina screens. Long story short, it will take your <code>fig.width</code>, <code>fig.height</code> and <code>dpi</code> input(s) and multiply them by 2. This can obviously lead to huge figure sizes (and file sizes) if you’re not careful. You may however not even know your figure sizes are huge if you’re also using the <code>out.width</code> setting (the width of the figure within the document). We’ll touch on this concept a little more in the next section when we discuss the <code>dpi</code> arguments. To remove this option set <code>fig.retina = NULL</code> or <code>fig.retina = 1</code>.</p>
+</div>
+<div id="using-the-dpi-arguments" class="section level2">
+<h2>Using the <code>dpi</code> arguments</h2>
+<p>In this section we’ll focus on the <code>dpi</code> or dots per inch argument. In general dpi is a measure of resolution – the higher the dpi, the sharper the image. For those of you that have already worked with <code>include_graphics</code> you probably noticed that the function has a <code>dpi</code> argument. In addition <code>dpi</code> can be used as an R chunk option.</p>
+<p>Below we’ll do some testing to see how the different dpi arguments are used with our image and figure. Let’s start by taking a look at one of our images.</p>
+<div id="applying-dpi-to-images" class="section level3">
+<h3>Applying <code>dpi</code> to images</h3>
+<p>Use the <code>include_graphics</code> function to add our image. As I mentioned above there are two places that will accept the <code>dpi</code> argument in this situation. The first example uses the <code>dpi</code> argument within our R chunk, the second uses the <code>dpi</code> argument within the <code>include_graphics</code> function.</p>
+<div id="compare-the-two-dpi-arguments" class="section level4">
+<h4>Compare the two <code>dpi</code> arguments</h4>
+<div id="include-dpi-as-an-r-chunk-argument" class="section level5">
+<h5>Include <code>dpi</code> as an R chunk argument</h5>
+<pre class="r"><code># {r, dpi=300}
+include_graphics(img2)</code></pre>
+<p><img src="images/sloth2.png" width="126" /></p>
+</div>
+<div id="include-dpi-as-an-include_graphics-argument" class="section level5">
+<h5>Include <code>dpi</code> as an <code>include_graphics</code> argument</h5>
+<pre class="r"><code># {r}
+include_graphics(img2, dpi=300)</code></pre>
+<p><img src="images/sloth2.png" width="252" /></p>
+</div>
+</div>
+<div id="why-are-our-images-different-sizes-when-applying-the-same-dpi" class="section level4">
+<h4>Why are our images different sizes when applying the same dpi?</h4>
+<p>The above examples are applying the same dpi to the same image so <strong>why are our images different sizes</strong>? When using the <code>include_graphics</code> function it will first look for the <code>dpi</code> argument within the function. If that’s not provided it will use the <code>dpi</code> argument from the R chunk. The formula for calculating the output image size using the <code>dpi</code> argument looks something like this:</p>
+<p><code>round(w/(dpi/96))</code></p>
+<p>Using this formula let’s determine where our different output image sizes are coming from. <strong>Remember that our downloaded image size will not change. These arguments do not change the dpi of your actual image, only the image size within the document.</strong></p>
+<pre class="r"><code># Calculation 1: we know the original width of the 
+# image is 788px and we&#39;re applying a dpi of 300px.
+
+w &lt;- 788
+dpi &lt;- 300
+
+round(w/(dpi/96))
+## [1] 252
+
+# As it turns out 252px is the width of the second 
+# image, the one that uses the dpi argument in the 
+# include_graphics function. Great! Now let&#39;s figure 
+# out how the width of the first image was calculated.</code></pre>
+<p>Based on what we now know about the behavior of image sizing, my guess is that the <code>dpi</code> in the first example is being applied to the <em>default width</em> of the image, not the original width. Remember the default width is calculated by multiplying the original width by 50%. Here’s what we get if we plug that into our formula:</p>
+<pre class="r"><code># Calculation 2: we know the original width of the 
+# image is 788px. Multiply that by 50% and use 
+# the same dpi of 300px.
+
+w &lt;- 788
+dpi &lt;- 300
+
+round((w * 0.5)/(dpi/96))
+## [1] 126
+
+# Bam! This is exactly right. The first example 
+# above that uses the dpi argument in the R chunk 
+# has a width of 126px.</code></pre>
+</div>
+<div id="additional-notes-and-summary-of-images-using-dpi-and-the-include_graphics-function" class="section level4">
+<h4>Additional notes and summary of images using <code>dpi</code> and the <code>include_graphics</code> function</h4>
+<p>If you’ve had a look at the <a href="https://www.rdocumentation.org/packages/knitr/versions/1.15.1/topics/include_graphics">documention</a> for <code>include_graphics</code> you may have seen that if you assign <code>dpi=NA</code> within the function, no <code>out.width</code> will be calculated. What does this mean? What happens in fact is the image is added using its <em>original</em> dimensions. On the other hand, if you simply do not add the <code>dpi</code> argument to either the R chunk or the <code>include_graphics</code> function, the out.width will be the <em>default</em> dimensions of the image.</p>
+<p>To summarize, when using the <code>include_graphics</code> function there are two places that will accept the <code>dpi</code> argument: 1) the R chunk and 2) the <code>include_graphics</code> function. If the <code>out.width</code> is not set it will be determined by using the equation <code>round(w/(dpi/96))</code> where:</p>
+<ul>
+<li><code>w</code> is the <em>original width</em> of the image when <code>dpi</code> is used as an argument in the <code>include_graphics</code> function</li>
+<li><code>w</code> is the <em>default width</em> of the image when <code>dpi</code> is used as an argument in the R chunk</li>
+</ul>
+<p>Also to note:</p>
+<ul>
+<li>If <code>dpi=NA</code> is assigned as an argument to the <code>include_graphics</code> function the <code>out.width</code> will be the <em>original</em> size of the image</li>
+<li>If no <code>dpi</code> argument is added to the the <code>include_graphics</code> function the <code>out.width</code> will be the <em>default</em> size of the image</li>
+</ul>
+</div>
+</div>
+<div id="applying-dpi-to-figures" class="section level3">
+<h3>Applying <code>dpi</code> to figures</h3>
+<p>How does the <code>dpi</code> argument work when applying it to R-generated figures? Since we’re not using the <code>include_graphics</code> function, there is only one place to add the <code>dpi</code> argument and that’s within the R chunk. Also the formula for calculating the final width when not using <code>include_graphics</code> is a little different. It looks something like this:</p>
+<p><code>fig.width in inches * dpi = final width in pixels</code></p>
+<p>Using this information let’s run through some examples. Also since we care as much about the dimensions of the figures in our document as well as the file sizes, I’ll start to include figure file sizes in these tests. Keep in mind as you create your own HTML documents that R-generated figures are stored in the folder ‘figure-html’ within your project directory. Another way to find out where your figures are being stored is to check the current chunk options: <code>opts_current$get(&quot;fig.path&quot;)</code></p>
+<div id="apply-dpi-to-figure-with-no-width-or-height-settings" class="section level4">
+<h4>Apply <code>dpi</code> to figure with no width or height settings</h4>
+<pre class="r"><code># {r, dpi=100}
+
+# Setting `dpi=100` with no height or width setting
+# will output a figure with `width = 700px`. How did 
+# we get there? Remember our default width for R-generated 
+# figures is 7 inches. If we plug that width into our 
+# formula we end up with:
+
+w &lt;- 7
+dpi &lt;- 100
+
+w * dpi
+## [1] 700
+
+# File size: 55 KB</code></pre>
+<p><img src="rmarkdown_images_files/figure-html/figwidth1-1.png" width="700" /></p>
+</div>
+<div id="apply-dpi-to-figure-with-fig.width-setting" class="section level4">
+<h4>Apply <code>dpi</code> to figure with <code>fig.width</code> setting</h4>
+<pre class="r"><code># {r, fig.width=5, dpi=300}
+
+# Increase our `dpi` to 300 and set `fig.width` 
+# to 5 inches. Plug in our new numbers
+w &lt;- 5
+dpi &lt;- 300
+
+w * dpi
+## [1] 1500
+
+# File size: 221 KB
+# When I click on the plot in my browser I can see
+# that the width is indeed 1500px but when I look 
+# at the actual figure dimensions (in this case
+# I&#39;m using Photoshop) I can see that the dimensions 
+# of the figure are a whopping 3000px by 3000px with 
+# dpi = 600, not to mention the file size is 
+# 221 KBs. Remember the `fig.retina` argument? 
+# We&#39;ll need to add that in if we want to get
+# our figure size under control.</code></pre>
+<p><img src="rmarkdown_images_files/figure-html/figwidth2-1.png" width="1500" /></p>
+</div>
+<div id="apply-dpi-to-figure-with-fig.width-and-fig.retina-settings" class="section level4">
+<h4>Apply <code>dpi</code> to figure with <code>fig.width</code> and <code>fig.retina</code> settings</h4>
+<pre class="r"><code># {r, fig.width=5, dpi=300, fig.retina=NULL}
+
+# Set our `dpi` to 300, `fig.width` to 5 inches
+# and `fig.retina` to NULL. Plug in our new numbers
+w &lt;- 5
+dpi &lt;- 300
+
+w * dpi
+## [1] 1500
+
+# File size: 72 KB
+# When I click on the plot in my browser I can
+# see that the width is indeed 1500px and when
+# I look at the actual figure dimensions they&#39;re
+# 1500px by 1500px with dpi = 300. Great!</code></pre>
+<p><img src="rmarkdown_images_files/figure-html/figwidth3-1.png" /><!-- --></p>
+</div>
+<div id="apply-dpi-to-figure-with-out.width-setting" class="section level4">
+<h4>Apply <code>dpi</code> to figure with <code>out.width</code> setting</h4>
+<pre class="r"><code># {r, out.width=&quot;600px&quot;, dpi=300}
+
+# Keep the same `dpi` setting, remove `fig.width` 
+# and set `out.width` to 600px. Keep in mind that
+# our formula requires a fig.width input, not 
+# out.width. Plug in our default fig.width of 7 in. 
+w &lt;- 7
+dpi &lt;- 300
+
+w * dpi
+## [1] 2100
+
+# File size: 299 KB
+# The output width of the figure is indeed 600px 
+# but the actual figure dimensions again are HUGE!
+# (4200px by 3000px with dpi = 600). Oops, this is
+# double what it should be. Looks like we forgot
+# to include `fig.retina = NULL`</code></pre>
+<p><img src="rmarkdown_images_files/figure-html/outwidth1-1.png" width="600px" /></p>
+</div>
+<div id="apply-dpi-to-figure-with-out.width-and-fig.retina-settings" class="section level4">
+<h4>Apply <code>dpi</code> to figure with <code>out.width</code> and <code>fig.retina</code> settings</h4>
+<pre class="r"><code># {r, out.width=&quot;600px&quot;, dpi=300, fig.retina=NULL}
+
+# Same as above except add `fig.retina=NULL`
+w &lt;- 7
+dpi &lt;- 300
+
+w * dpi
+## [1] 2100
+
+# File size: 96 KB
+# Much better. The figure in the HTML output is
+# 600px wide and the actual figure dimensions
+# are 2100px by 1500px with dpi = 300. Perfect!</code></pre>
+<p><img src="rmarkdown_images_files/figure-html/outwidth2-1.png" width="600px" /></p>
+</div>
+<div id="apply-dpi-to-figure-with-out.width-fig.width-and-fig.retina-settings" class="section level4">
+<h4>Apply <code>dpi</code> to figure with <code>out.width</code>, <code>fig.width</code> and <code>fig.retina</code> settings</h4>
+<pre class="r"><code># {r, out.width=&quot;50%&quot;, dpi=300, fig.width=5, fig.retina=NULL}
+
+# Let&#39;s use all of the arguments here
+w &lt;- 5
+dpi &lt;- 300
+
+w * dpi
+## [1] 1500
+
+# File size: 72 KB
+# Great! The figure width in our document is 50% of
+# the container, the file size is relatively small 
+# and the figure dimensions are such that a client
+# could download the graphic and get a relatively 
+# high-resolution version of the plot.</code></pre>
+<p><img src="rmarkdown_images_files/figure-html/unnamed-chunk-19-1.png" width="50%" /></p>
+</div>
+</div>
+<div id="summary-of-dpi-arguments" class="section level3">
+<h3>Summary of <code>dpi</code> arguments</h3>
+<p>The <code>dpi</code> arguments can be very useful if, for example, you’re creating an HTML document and you’d like your users to be able to download high-resolution images. It’s hopefully easy to see however <em>how quickly the file size of your HTML document could get out of control</em>. Including 10 images that are 250 KBs each will result in a document that’s &gt; 2.5 MBs. That’s quite large for an HTML file! Many of our documents have more than 20 figures included so well, you can see how overlooking certain settings could result in monstrous file sizes.</p>
+<p>To summarize here are our quick takeaways:</p>
+<ul>
+<li><p>If you’re using the <code>include_graphics</code> function with an image, it will first look for the <code>dpi</code> argument within the function. If that is not provided it will use the <code>dpi</code> argument in the R chunk. The width of the resulting image will be calculated slightly differently depending on which <code>dpi</code> argument is used.</p></li>
+<li><p>If you’re using the <code>include_graphics</code> function with an image, using the <code>dpi</code> argument will only control the size of the image in the HTML document, it will not change the dpi of your original image.</p></li>
+<li><p>When using <code>dpi</code> with figures the dimensions of the figure are calculated using the equation <code>fig.width in inches * dpi = final width in pixels</code>. For example if <code>fig.width = 8</code> and <code>dpi = 300</code> the final width of your figure will be 2400px <strong>with a caveat</strong>.</p></li>
+<li><p>Unless you set <code>fig.retina = NULL</code> or <code>fig.retina = 1</code> the size of your figure file will be double what the input is. Using the example from the previous bullet would result in a figure width of 4800px – which is huge!</p></li>
+<li><p>A useful practice for keeping file sizes in check is to occasionally browse to the ‘figure-html’ folder within your R Markdown project. Here you can quickly see which <em>figures</em> (not images) are too large and make adjustments accordingly.</p></li>
+</ul>
+</div>
+</div>
+<div id="bonus-functionality" class="section level2">
+<h2>Bonus functionality</h2>
+<p>Here we’ll share a few more useful arguments we found while doing our research. The first section pertains again to the <code>include_graphics</code> function, the second section quickly highlights two other methods for adding images to your markdown document (in case <code>include_graphics</code> just isn’t your thing :) and the third section discusses how to add CSS styles to your R chunks. Enjoy!</p>
+<div id="more-functionality-from-include_graphics" class="section level3">
+<h3>More functionality from <code>include_graphics</code></h3>
+<div id="add-multiple-images-at-a-time" class="section level4">
+<h4>Add multiple images at a time</h4>
+<p>The <code>path</code> argument in <code>include_graphics</code> will accept a vector of names. If you have a folder of images and want to add all them to your document at the same time simply point to the folder and voila!</p>
+<pre class="r"><code>myimages&lt;-list.files(&quot;images/&quot;, pattern = &quot;.png&quot;, full.names = TRUE)
+include_graphics(myimages)</code></pre>
+<p><img src="images/sloth1.png" width="30%" /><img src="images/sloth2.png" width="30%" /></p>
+</div>
+<div id="load-an-image-from-a-url" class="section level4">
+<h4>Load an image from a URL</h4>
+<p>Super easy – point to an image on the web.</p>
+<pre class="r"><code>include_graphics(&quot;https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/MC_Drei-Finger-Faultier.jpg/330px-MC_Drei-Finger-Faultier.jpg&quot;)</code></pre>
+<p><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/MC_Drei-Finger-Faultier.jpg/330px-MC_Drei-Finger-Faultier.jpg" width="50%" /></p>
+</div>
+<div id="add-r-generated-figures-using-include_graphics" class="section level4">
+<h4>Add R-generated figures using <code>include_graphics</code></h4>
+<p>We’ve discussed using the <code>include_graphics</code> function mostly in the context of adding user-generated images. It can however also be used to add R-generated figures. This example was taken directly from <a href="http://stackoverflow.com/questions/15625990/how-to-set-size-for-local-image-using-knitr-for-markdown/36057971">this</a> Stack Overflow post. It shows how to generate plots but not include them, then call on them with the <code>include_graphics</code> function. This also uses the “fig.path” and “label” arguments from the R chunk.</p>
+<pre class="r"><code># {r label = &quot;generate_figures&quot;, fig.show = &quot;hide&quot;}
+plot(1:10, col = &quot;green&quot;)
+plot(1:10, col = &quot;red&quot;)</code></pre>
+<pre class="r"><code>include_graphics(sprintf(&quot;%sgenerate_figures-2.png&quot;, opts_current$get(&quot;fig.path&quot;)))</code></pre>
+<p><img src="rmarkdown_images_files/figure-html/generate_figures-2.png" width="50%" /></p>
+</div>
+</div>
+<div id="additional-methods-for-adding-images" class="section level3">
+<h3>Additional methods for adding images</h3>
+<p>Here are two other methods for adding images to your R Markdown document.</p>
+<div id="adding-images-using-pandoc-markdown" class="section level4">
+<h4>Adding images using Pandoc Markdown</h4>
+<pre class="r"><code>![Upside-down sloths are so cute](images/sloth1.png){width=40%}</code></pre>
+<div class="figure">
+<img src="images/sloth1.png" alt="Upside-down sloths are so cute" style="width:40.0%" />
+<p class="caption">Upside-down sloths are so cute</p>
+</div>
+</div>
+<div id="adding-images-using-html" class="section level4">
+<h4>Adding images using HTML</h4>
+<pre class="r"><code>&lt;img src=&quot;images/sloth1.png&quot; alt=&quot;Upside-down sloths are so cute&quot;, width = &quot;40%&quot;&gt;</code></pre>
+<p><img src="images/sloth1.png" alt="Upside-down sloths are so cute", width = "40%"></p>
+</div>
+</div>
+<div id="assign-css-class-to-r-chunk" class="section level3">
+<h3>Assign CSS class to R chunk</h3>
+<p>Have you ever wanted to include 2 side-by-side figures in your HTML document? Below are two examples of how to accomplish this using CSS styles.</p>
+<div id="use-out.extra-to-apply-css-styles" class="section level4">
+<h4>Use <code>out.extra</code> to apply CSS styles</h4>
+<pre class="r"><code># {r, out.width=&quot;50%&quot;, out.extra=&#39;style=&quot;float:left&quot;&#39;}
+plot(1:10, pch=21, bg=&quot;blue&quot;)
+plot(10:1, pch=21, bg=&quot;red&quot;)</code></pre>
+<p><img src="rmarkdown_images_files/figure-html/unnamed-chunk-26-1.png" width="50%" style="float:left" /><img src="rmarkdown_images_files/figure-html/unnamed-chunk-26-2.png" width="50%" style="float:left" /></p>
+<p>And here we use our <code>include_graphics</code> example from above but apply the same height to both images.</p>
+<pre class="r"><code># {r, out.extra=&#39;style=&quot;width: auto; height: 200px;&quot;&#39;}
+myimages&lt;-list.files(&quot;images/&quot;, pattern = &quot;.png&quot;, full.names = TRUE)
+include_graphics(myimages)</code></pre>
+<p><img src="images/sloth1.png" width="675" style="width: auto; height: 200px;" /><img src="images/sloth2.png" width="394" style="width: auto; height: 200px;" /></p>
+</div>
+<div id="add-css-class-to-r-chunk-to-apply-styles" class="section level4">
+<h4>Add CSS class to R chunk to apply styles</h4>
+<p>Here is another variation of applying a CSS style to an R chunk.</p>
+<pre class="r"><code># {r myclass, out.width=&quot;50%&quot;}
+
+# This style could be applied either as a separate
+# stylesheet or at the top of your R Markdown document
+# &lt;style&gt;
+# .myclass {float: left;}
+# &lt;/style&gt;
+
+plot(1:10, pch=21, bg=&quot;blue&quot;)
+plot(10:1, pch=21, bg=&quot;red&quot;)</code></pre>
+<p><img src="rmarkdown_images_files/figure-html/myclass-1.png" width="50%" /><img src="rmarkdown_images_files/figure-html/myclass-2.png" width="50%" /></p>
+</div>
+</div>
+</div>
+<div id="summary" class="section level2">
+<h2>Summary</h2>
+<p>R Markdown provides an incredible framework for creating reproducible reports using a variety of document formats. We focused this post on HTML documents in particular which are perhaps one of the easier types of documents to style. Nonetheless we covered some useful (but potentially confusing) topics such as sizing images and figures, the different ways in which images and figures respond to arguments and ways to keep your overall file size in check.</p>
+<p>Here’s what we consider to be the most important takeaways from this post:</p>
+<ul>
+<li>User-generated images and R-generated figures are handled differently. Not all of the same arguments can be applied to both types.</li>
+<li>The <code>fig.xxx</code> arguments only apply to R-generated images, not to user-generated images</li>
+<li>To keep figure sizes in check we strongly recommend the use of <code>fig.retina=NULL</code> in your R chunk (but again, this will only work for R-generated figures)</li>
+<li>The original file size of an image will never be adjusted BUT you can adjust the size of the image within the output document. If you add a 5MB image to a document you can make it appear much smaller in the report BUT that 5MB image will still be part of your final HTML document. Check your image sizes before adding them.</li>
+<li>Figure sizes are determined using a combination of arguments. We gave examples of how to use <code>fig.width</code>, <code>fig.retina</code> and <code>dpi</code>.</li>
+<li>If the size of the HTML document matters to you, keep an eye on your figure sizes by checking your ‘figure-html’ folder. This figure path can also be found by checking the current chunk options: <code>opts_current$get(&quot;fig.path&quot;)</code>. Looking at the file sizes may help you decide which figures need adjusting.</li>
+</ul>
+<p>I think that wraps it up for now. Thanks for reading!</p>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

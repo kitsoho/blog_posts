@@ -1,0 +1,326 @@
+---
+title: Downloading, processing and mapping government data in R using the `FedData` package
+output:
+  html_document:
+    toc: true
+---
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(knitr)
+opts_chunk$set(message=FALSE)
+opts_chunk$set(warning=FALSE)
+opts_chunk$set(error=FALSE)
+opts_chunk$set(collapse=TRUE)
+options(scipen=999999)
+
+```
+
+In one of our recent posts we discussed downloading Census data using the [`acs` and `tigris` libraries in R](http://zevross.com/blog/2015/10/14/manipulating-and-mapping-us-census-data-in-r-using-the-acs-tigris-and-leaflet-packages-3/). With a relatively new package, [`FedData`](https://cran.r-project.org/web/packages/FedData/FedData.pdf), we can download additional government datasets within a user-defined area of interest. The following five sources of data are currently available for download with future ones in the works:<br><br>
+* The National Hydrography Dataset (USGS)<br>
+* The National Elevation Dataset digital elevation models (1 and 1/3 arc-second; USGS)<br>
+* The Soil Survey Geographic (SSURGO) database from the National Cooperative Soil Survey (NCSS)<br>
+* The Global Historical Climatology Network (GHCN), coordinated by National Climatic Data Center at NOAA<br>
+* The International Tree Ring Data Bank (ITRDB), coordinated by National Climatic Data Center at NOAA<br>
+
+For this particular post we're focusing on the GHCN and NED datasets.
+<br>
+<br>
+
+
+## Load the libraries
+
+```{r}
+library(FedData)    # for downloading Federal data
+library(ggmap)      # for choosing our area of interest
+library(raster)	    # for defining extents and raster processing
+library(sp)         # for working with spatial objects
+library(dplyr)      # for awesomeness
+library(leaflet)    # for mapping
+```
+<br>
+<br>
+
+## Define your map extent
+
+Before downloading any data we must first define our map extent or template. The template can be a raster or spatial object used to identify your area of interest. Based on the `FedData` documentation **an undefined template indicates that all data for a particular dataset will be downloaded -- which could be very time consuming!** We recommend choosing a small area of interest to begin with :)
+
+To define your extent and depending on your data needs you could [read a shapefile into R using the `rgdal` library](http://zevross.com/blog/2016/01/13/tips-for-reading-spatial-files-into-r-with-rgdal/) or choose a Census-designated boundary using the [`tigris` or `acs` library](http://zevross.com/blog/2015/10/14/manipulating-and-mapping-us-census-data-in-r-using-the-acs-tigris-and-leaflet-packages-3/). For this particular demonstration however we are going to be a little lazy and use the `ggmap` library to grab our extent. We'll focus our data needs on our lovely Ithaca, NY!
+
+```{r}
+ithaca<-get_map("Ithaca, NY", zoom=11)
+ggmap(ithaca)
+```
+
+
+Using our `ggmap` object pull out the bounding box coordinates using the `attr` function. 
+```{r}
+bb<-attr(ithaca, "bb")
+bb
+```
+
+The `FedData` package requires that our extent template be a bounding box matrix, not the current ggmap data.frame. The matrix should be a [two-column matrix; the first column has the minimum, the second the maximum values; rows represent the spatial dimensions](https://cran.r-project.org/web/packages/sp/sp.pdf). We can easily create this by doing some simple re-arranging.
+
+```{r}
+bb.mat<-bbox(matrix(bb[,c("ur.lon", "ll.lon", "ur.lat", "ll.lat")], nrow=2, ncol=2))
+bb.mat
+```
+
+Now we'll create an `extent` object using the `raster` library. Keep in mind that the `extent` function can be used on both raster and spatial objects. Here we'll create a 'SpatialPolygon' using the extent function.
+
+```{r}
+bb.mat<-as(extent(bb.mat), "SpatialPolygons")
+proj4string(bb.mat)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+```
+
+
+Let's check to make sure our bounding box is what we want.
+
+```{r}
+# Perfect!
+ggmap(ithaca) + geom_polygon(aes(x=long, y=lat), size=3, color='purple',
+	data=bb.mat, fill=NA)
+```
+<br>
+<br>
+
+## Convert extent object to `SpatialPolygonsDataFrame`
+
+In our testing we found that the bounding box matrix was only working as our extent template if it was a 'SpatialPolygonsDataFrame' object, NOT a 'SpatialPolygons' object. Knowing this let's convert our 'bb.mat' into a new 'SpatialPolygonsDataFrame'. 
+
+```{r, warning=FALSE}
+# Get the ID slot of the 'SpatialPolygon' object
+getSpPPolygonsIDSlots(bb.mat)
+
+
+# You can also do this
+sapply(slot(bb.mat, "polygons"), function(x) slot(x, "ID"))
+
+
+# Assign the same ID to the 'SpatialPolygonsDataFrame'
+bb.fin<-SpatialPolygonsDataFrame(bb.mat, data.frame(N = c("1"), row.names = c("1")))
+
+
+# NOTE: We discovered this after writing the
+# above lines. This function which is part of 
+# the `FedData` package will easily convert 
+# your SP to a SPDF. Much easier! 
+bb.fin<-spdf_from_polygon(bb.mat)
+```
+<br>
+<br>
+
+## Download the data!
+
+Now that we have our extent defined let's download some data! Keep in mind that based on your extent this step might take a few minutes. Also you may want to set a working directory, otherwise the data will be downloaded to your default directory.
+
+```{r, warning=FALSE}
+setwd("D:/work_big_current/blog/feddata_tompkins")
+
+# Download NED elevation data. This will return a raster
+# of elevation data cropped to our extent area. Res = "1" 
+# refers to 1 arc-second NED. This is the default. To 
+# download 1/3 arc-second NED use res = "13". I'm adding 
+# force.redo = F to both download functions. This will 
+# check to see if the data already exists in which case 
+# it will not re-download it.
+ned_ithaca<-get_ned(template=bb.fin, label="ned_ithaca", res="1", force.redo = F)
+
+
+# Download GHCN daily climate data. We're interested in 
+# precipitation (PRCP) but many other climate-related
+# elements exist (i.e. max and min temp, snowfall, etc).
+# See the `FedData` documentation for more details. Also 
+# of note is that a character vector of station IDs can 
+# be used in place of our 'bb.fin' extent object -- I 
+# did not test this.
+ghcn_ithaca<-get_ghcn_daily(template=bb.fin, label="ghcn_ithaca",
+	elements="prcp", force.redo = F)
+```
+
+Using the base R `plot` function take a quick look at the data.
+
+```{r}
+# Not pretty but otherwise so far so good!
+plot(ned_ithaca)
+plot(ghcn_ithaca$spatial, add=TRUE)
+```
+<br>
+<br>
+
+## Explore the GHCN climate data
+
+### GHCN spatial component
+As you may have noticed in the above plot, we access the "spatial" component of the GHCN data for adding points to the map. The other component of the GHCN download is the "tabular" piece. This is where the actual climate data is stored. Here we'll show the points again but this time using our Ithaca map and ggplot2. 
+
+```{r}
+# Plot the data using ggmap and ggplot2. Note 
+# that we convert our spatial coordinates to a 
+# data.frame for plotting with ggmap.
+ghcn_pts<-data.frame(ID = ghcn_ithaca$spatial$ID,
+	lat = ghcn_ithaca$spatial@coords[,2],
+	long = ghcn_ithaca$spatial@coords[,1])
+ghcn_pts<-mutate(ghcn_pts, ID = as.character(as.factor(ID)))
+
+head(ghcn_pts)
+
+
+# Plot the points again. Looking a little better!
+ggmap(ithaca) + geom_point(aes(x=long, y=lat),
+	size=3, color='red', data=ghcn_pts)
+```
+<br>
+<br>
+
+### GHCN tabular component
+Now let's have a look at the actual precipitation values. The GHCN output returns a large list where each list element is an individual station and each station contains a data.frame of precipitation values. If we had downloaded multiple climate elements there would be multiple tables associated with each station. 
+
+```{r}
+ghcn_dat<-ghcn_ithaca$tabular
+
+
+# Pull out the PRCP tables. If there were other
+# climate elements we could access these in a 
+# similar way (i.e. ghcn_dat, "[[", "TMIN")
+prcp<-lapply(ghcn_dat, "[[", "PRCP")
+
+
+# We're only interested in the most recent year of 
+# complete data. Let's filter to 2015.
+prcp.2015<-lapply(prcp, function(x) filter(x, YEAR == 2015))
+head(prcp.2015[[1]])
+
+
+# Roughly half of our stations have no data for 2015.
+# Remove these from the list.
+prcp.2015<-prcp.2015[lapply(prcp.2015, nrow) > 0]
+```
+<br>
+
+Summarize the data so we have annual averages for each station. Here we'll calculate 1) monthly averages and 2) annual averages.
+
+**NOTE: we are being extremely lazy here in our calculations paying no regard to data completeness, etc. Please do not apply these methods blindly when doing your own analysis :)**
+
+```{r}
+# Create a vector of days for easily accessing day columns
+days<-paste0("D", seq(1:31))
+prcp.avg.month<-sapply(prcp.2015, function(x) rowMeans(x[,c(days)], na.rm=T))
+
+
+# Remove outliers, incomplete stations
+prcp.avg.month$US1NYTM0007<-NULL
+prcp.avg.month$US1NYTM0027<-NULL
+prcp.avg.month$US1NYTM0032<-NULL
+
+
+# Take a quick look at the monthly data.
+d<-reshape2::melt(prcp.avg.month)
+names(d)<-c("prcp", "station")
+
+head(d)
+
+ggplot(d, aes(x = station, y = prcp)) + 
+	geom_boxplot(fill="olivedrab3", color="olivedrab") +
+	theme(axis.title.x=element_blank(),
+		axis.text.x = element_text(angle = 90, 
+			hjust = 1))
+```
+<br>
+<br>
+
+```{r}
+# Calculate annual averages and create a final 
+# data.frame of values
+prcp.avg.ann<-sapply(prcp.avg.month, function(x) mean(x, na.rm=T))
+
+prcp.fin<-data.frame(ID = names(prcp.avg.ann), prcpAvg = round(prcp.avg.ann, 2))
+prcp.fin<-mutate(prcp.fin, ID = as.character(as.factor(ID)))
+prcp.fin<-left_join(prcp.fin, ghcn_pts, by= "ID")
+```
+<br>
+<br>
+
+### Create Leaflet map of GHCN average annual data
+
+```{r}
+leaflet() %>% addProviderTiles("CartoDB.Positron") %>%
+	addCircleMarkers(data = prcp.fin, lng = ~long, lat = ~lat,
+		radius = ~prcpAvg/3, stroke=F,
+    popup = paste("<strong>Station ID</strong><br>", prcp.fin$ID,
+    	"<br><br><strong>Average Annual<br>Precipitation</strong><br>",
+    	prcp.fin$prcpAvg, " inches"), color = "#006B8C", fillOpacity = 0.7)
+```
+
+<br>
+<br>
+
+
+## Explore the NED 1-arc second elevation data
+In a previous blog post we discuss [working with rasters using the `raster` library](http://zevross.com/blog/2015/03/30/map-and-analyze-raster-data-in-r/). This post is helpful if you're looking to crop, re-classify or re-sample your data. In addition we have a post on [rendering a raster for use in Google Maps](http://zevross.com/blog/2015/08/21/process-a-raster-for-use-in-a-google-map-using-r/) which highlights multiple methods (some successful, some not) of exporting and overlaying a raster in Google Maps. Given these posts we're only going to lightly explore our elevation raster. The goal is to extract elevation values at the station locations and lastly create a final map!
+
+
+
+```{r}
+# Take a quick look at the elevation distribution
+neddat<-as.data.frame(ned_ithaca)
+names(neddat)<-"elev"
+
+ggplot(data=neddat, aes(elev)) + 
+	geom_histogram(binwidth = 20, fill="sienna1", col="sienna3")
+```
+
+```{r}
+# Create SpatialPointsDataFrame from GHCN points
+pts<-prcp.fin
+coordinates(pts)<-~long+lat
+proj4string(pts)<-"+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs"
+
+
+# Project the points and elevation raster
+# to NY State Plane
+ithprj<-"+proj=tmerc +lat_0=40 +lon_0=-76.58333333333333 +k=0.9999375 +x_0=250000 +y_0=0 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs" 
+
+ptsprj<-spTransform(pts, CRS(ithprj))
+nedprj<-projectRaster(ned_ithaca, crs=ithprj)
+
+
+# Extract elevation values at point locations
+nedpts<-extract(nedprj, ptsprj)
+
+
+# Add elevation values to the points data
+prcp.fin<-cbind(prcp.fin, nedpts)
+prcp.fin<-mutate(prcp.fin, nedpts = round(nedpts, 2))
+head(prcp.fin)
+```
+<br>
+<br>
+
+## Create the final map with elevation and climate data
+Here we'll pull together all the pieces and create a relatively simple yet practical Leaflet map with our elevation raster and station locations. **NOTE: depending on the size of your raster you may not be able to add the image to your Leaflet Map**.
+
+```{r}
+# Elevation colors were heavily borrowed from the
+# Kansas Geological Survey's Elevation Map of Kansas:
+# http://www.kgs.ku.edu/General/elevatMap.html
+cols<-c("#06407F", "#317A9D", "#4ABEBB", "#40AE89", "#467B5D",
+	"#3C6D4D", "#1A572E", "#034C00", "#045D03", "#6C975F", "#6B823A",
+	"#88A237", "#C5D16B", "#DDE580", "#FFF6AE", "#FBCB81", "#F0B16A",
+	"#F2B16D", "#D18338", "#B16F33", "#825337", "#66422A", "#4F2C0C")
+
+pal<-colorNumeric(cols, values(nedprj),
+  na.color = "transparent")
+ 
+leaflet() %>% addProviderTiles("CartoDB.Positron") %>%
+  addRasterImage(nedprj, colors = pal, opacity = 0.6) %>%
+	addCircleMarkers(data = prcp.fin, lng = ~long,
+		lat = ~lat, radius = ~prcpAvg/3, stroke=F,
+		popup = paste("<strong>Station ID</strong><br>", prcp.fin$ID,
+    	"<br><br><strong>Average Annual<br>Precipitation</strong><br>",
+    	prcp.fin$prcpAvg, " inches<br><br><strong>Elevation</strong><br>",
+			prcp.fin$nedpts, " feet"), color = "#006B8C", fillOpacity = 0.7)
+```
+
+
+
+
+
